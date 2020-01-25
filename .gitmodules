@@ -1,0 +1,3 @@
+[submodule "libs/xvk"]
+	path = libs/xvk
+	url = git@github.com:Vulkan4D/xvk.git
