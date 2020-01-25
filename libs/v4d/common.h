@@ -61,6 +61,9 @@
 #include "graphics/vulkan/ComputeShaderPipeline.h"
 #include "graphics/vulkan/RasterShaderPipeline.h"
 
+// v4d/graphics
+#include "graphics/Renderer.h"
+
 // GLM
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
