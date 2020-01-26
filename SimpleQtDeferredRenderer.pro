@@ -38,6 +38,8 @@ SOURCES += \
 HEADERS += \
     DeferredRenderer.hpp \
     libs/v4d/common.h \
+    libs/v4d/graphics/Camera.hpp \
+    libs/v4d/graphics/LightSource.hpp \
     libs/v4d/graphics/vulkan/Buffer.h \
     libs/v4d/graphics/vulkan/ComputeShaderPipeline.h \
     libs/v4d/graphics/vulkan/DescriptorSet.h \
