@@ -63,7 +63,7 @@ void Buffer::CopySrcData(Device* device) {
 	if (autoMapMemory) MapMemory(device);
 	long offset = 0;
 	for (auto& dataPointer : srcDataPointers) {
-		memcpy((byte*)data + offset, dataPointer.dataPtr, dataPointer.size);
+        memcpy((std::byte*)data + offset, dataPointer.dataPtr, dataPointer.size);
 		offset += dataPointer.size;
 	}
 	if ((properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0) {

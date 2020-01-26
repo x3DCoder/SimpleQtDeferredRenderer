@@ -40,9 +40,9 @@
 #endif
 
 // Logging
-#define LOG(msg) std::cout << msg << std::endl;
+#define LOG(msg) std::cout << " " << msg << std::endl;
 #define LOG_WARN(msg) std::cout << "WARNING: " << msg << std::endl;
-#define LOG_ERROR(msg) std::cerr << msg << std::endl;
+#define LOG_ERROR(msg) std::cerr << "ERROR: " << msg << std::endl;
 
 // v4d/graphics/vulkan
 #include "graphics/vulkan/Loader.h"

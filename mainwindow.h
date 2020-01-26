@@ -1,21 +1,26 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
+#include "libs/v4d/common.h"
 
-#include <QMainWindow>
+#include <QWindow>
+#include <QKeyEvent>
 
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
-
-class MainWindow : public QMainWindow
+class MainWindow : public QWindow
 {
     Q_OBJECT
 
+    std::map<int, bool> keysDown {};
+    std::vector<int> keysPressed {};
+
 public:
-    MainWindow(QWidget *parent = nullptr);
+    std::recursive_mutex keysEventMutex;
+    
+    MainWindow(QWindow* parent = nullptr);
     ~MainWindow();
 
-private:
-    Ui::MainWindow *ui;
+    void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
+    bool isKeyDown(int key);
+    bool wasKeyPressed(int key);
+    void resetKeysPressed();
+
 };
-#endif // MAINWINDOW_H

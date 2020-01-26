@@ -1,6 +1,10 @@
 #pragma once
 #include "libs/v4d/common.h"
 
+#ifdef XVK_USE_QT_VULKAN_LOADER
+    #include <QWindow>
+#endif
+
 using namespace v4d::graphics::vulkan;
 
 namespace v4d::graphics {
@@ -66,12 +70,11 @@ namespace v4d::graphics {
         void OptionalDeviceExtension(const char* ext);
         bool IsDeviceExtensionEnabled(const char* ext);
 
-    protected:
+    protected: // Pure-virtual methods
 
         // Init
         virtual void ScorePhysicalDeviceSelection(int& score, PhysicalDevice* physicalDevice) = 0;
         virtual void Init() = 0;
-        virtual void Info() = 0;
         virtual void InitLayouts() = 0;
         virtual void ConfigureShaders() = 0;
 
@@ -160,7 +163,7 @@ namespace v4d::graphics {
     public:
 
         // Constructor & Destructor
-        Renderer(Loader* loader, const char* applicationName, uint applicationVersion, Window* window);
+        Renderer(Loader* loader, const char* applicationName, uint applicationVersion, QWindow* window);
         ~Renderer() override;
 
         void Render();

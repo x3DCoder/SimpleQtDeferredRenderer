@@ -47,36 +47,40 @@ Instance::Instance(vulkan::Loader* loader, const char* applicationName, uint app
 	this->loader = loader;
 	if (logging) LOG("Creating Vulkan instance...");
 	
-	loader->CheckLayers(logging);
-	loader->CheckExtensions(logging);
-	loader->CheckVulkanVersion();
-
-	// Prepare appInfo for the Vulkan Instance
-	VkApplicationInfo appInfo {
-		VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		nullptr, //pNext
-		applicationName,
-		applicationVersion,
-		V4D_ENGINE_NAME,
-		V4D_ENGINE_VERSION,
-		VULKAN_API_VERSION
-	};
-
 	// Create the Vulkan instance
-	VkInstanceCreateInfo createInfo {
-		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		nullptr, // pNext
-		0, // flags
-		&appInfo,
-		(uint32_t)loader->requiredInstanceLayers.size(),
-		loader->requiredInstanceLayers.data(),
-		(uint32_t)loader->requiredInstanceExtensions.size(),
-		loader->requiredInstanceExtensions.data()
-	};
+    #ifdef XVK_USE_QT_VULKAN_LOADER
+		if (!vulkanLoader->qtVulkanInstance->create())
+			throw std::runtime_error("Failed to create Vulkan Instance");
+		handle = vulkanLoader->qtVulkanInstance->vkInstance();
+	#else
+		loader->CheckLayers(logging);
+		loader->CheckExtensions(logging);
+		loader->CheckVulkanVersion();
 
-	// Create the Vulkan instance
-	if (vulkanLoader->vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create Vulkan Instance");
+		// Prepare appInfo for the Vulkan Instance
+		VkApplicationInfo appInfo {
+			VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			nullptr, //pNext
+			applicationName,
+			applicationVersion,
+			V4D_ENGINE_NAME,
+			V4D_ENGINE_VERSION,
+			VULKAN_API_VERSION
+		};
+		// Create the Vulkan instance
+		VkInstanceCreateInfo createInfo {
+			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			nullptr, // pNext
+			0, // flags
+			&appInfo,
+			(uint32_t)loader->requiredInstanceLayers.size(),
+			loader->requiredInstanceLayers.data(),
+			(uint32_t)loader->requiredInstanceExtensions.size(),
+			loader->requiredInstanceExtensions.data()
+		};
+		if (vulkanLoader->vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
+			throw std::runtime_error("Failed to create Vulkan Instance");
+	#endif
 		
 	LoadFunctionPointers();
 
@@ -110,7 +114,11 @@ Instance::~Instance() {
 	#ifdef _DEBUG
 		DestroyDebugUtilsMessengerEXT(vulkanCallbackExtFunction, nullptr);
 	#endif
-	DestroyInstance(nullptr);
+	#ifdef XVK_USE_QT_VULKAN_LOADER
+        vulkanLoader->qtVulkanInstance->destroy();
+	#else
+		DestroyInstance(nullptr);
+	#endif
 	for (auto *physicalDevice : availablePhysicalDevices) {
 		delete physicalDevice;
 	}

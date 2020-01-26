@@ -58,8 +58,7 @@ HEADERS += \
 INCLUDEPATH += libs/xvk
 INCLUDEPATH += libs/xvk/glm
 
-FORMS += \
-    mainwindow.ui
+LIBS += -ldl
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

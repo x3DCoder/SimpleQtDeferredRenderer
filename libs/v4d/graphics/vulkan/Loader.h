@@ -8,7 +8,8 @@
 #pragma once
 #include "../../common.h"
 
-#define XVK_INTERFACE_RAW_FUNCTIONS_ACCESSIBILITY private
+#define XVK_INTERFACE_RAW_FUNCTIONS_ACCESSIBILITY public
+#define XVK_USE_QT_VULKAN_LOADER
 #include <xvk.hpp>
 
 #define V4D_ENGINE_NAME "Vulkan4D"
@@ -19,6 +20,7 @@ namespace v4d::graphics::vulkan {
 	
 	class Loader : public xvk::Loader {
 	public:
+        using xvk::Loader::Loader;
 	
 		// Required Instance Extensions
 		std::vector<const char*> requiredInstanceExtensions {
@@ -33,11 +35,14 @@ namespace v4d::graphics::vulkan {
 			"VK_LAYER_LUNARG_standard_validation",
 			#endif
 		};
-		
-		void CheckExtensions(bool logging = false);
-		void CheckLayers(bool logging = false);
-		void CheckVulkanVersion();
 
+		#ifndef XVK_USE_QT_VULKAN_LOADER
+
+			void CheckExtensions(bool logging = false);
+			void CheckLayers(bool logging = false);
+			void CheckVulkanVersion();
+
+		#endif
 	};
 	
 }

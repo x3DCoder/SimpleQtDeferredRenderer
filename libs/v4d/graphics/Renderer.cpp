@@ -80,7 +80,7 @@ void Renderer::CreateDevices() {
 		renderingPhysicalDevice,
 		deviceFeatures,
 		deviceExtensions,
-		vulkanLoader->requiredInstanceLayers,
+        vulkanLoader->requiredInstanceLayers,
 		{// Queues
 			{
 				"graphics",
@@ -701,7 +701,6 @@ void Renderer::LoadRenderer() {
 	std::scoped_lock lock(renderingMutex, lowPriorityRenderingMutex);
 	
 	CreateDevices();
-	Info();
 	CreateSyncObjects();
 	if (!CreateSwapChain()) {
 		return;
@@ -743,7 +742,6 @@ void Renderer::ReloadRenderer() {
 	ReadShaders();
 	
 	CreateDevices();
-	Info();
 	CreateSyncObjects();
 	
 	if (!CreateSwapChain()) {
@@ -782,14 +780,22 @@ void Renderer::UnloadGraphicsFromDevice() {
 
 #pragma region Constructor & Destructor
 
-Renderer::Renderer(Loader* loader, const char* applicationName, uint applicationVersion, Window* window)
-: Instance(loader, applicationName, applicationVersion, true) {
-	surface = window->CreateVulkanSurface(handle);
-}
-
-Renderer::~Renderer() {
-	DestroySurfaceKHR(surface, nullptr);
-}
+#ifdef XVK_USE_QT_VULKAN_LOADER
+	Renderer::Renderer(Loader* loader, const char* applicationName, uint applicationVersion, QWindow* window)
+	: Instance(loader, applicationName, applicationVersion, true) {
+		surface = QVulkanInstance::surfaceForWindow(window);
+		if (!surface) throw std::runtime_error("Failed to fetch vulkan surface");
+	}
+	Renderer::~Renderer() {}
+#else
+	Renderer::Renderer(Loader* loader, const char* applicationName, uint applicationVersion, Window* window)
+	: Instance(loader, applicationName, applicationVersion, true) {
+		surface = window->CreateVulkanSurface(handle);
+	}
+	Renderer::~Renderer() {
+		DestroySurfaceKHR(surface, nullptr);
+	}
+#endif
 
 #pragma endregion
 
