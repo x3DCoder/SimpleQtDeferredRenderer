@@ -31,7 +31,7 @@ uint32_t RenderPass::AddAttachment(VkAttachmentDescription& attachment) {
 }
 
 VkFramebuffer& RenderPass::GetFrameBuffer(int index) {
-	if (frameBuffers.size() < index+1) frameBuffers.resize(index+1);
+    if (frameBuffers.size() < (uint32_t)index+1) frameBuffers.resize(index+1);
 	return frameBuffers[index];
 }
 

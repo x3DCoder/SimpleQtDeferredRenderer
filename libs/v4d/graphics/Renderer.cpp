@@ -197,7 +197,7 @@ void Renderer::CreateDescriptorSets() {
 		if (renderingDevice->AllocateDescriptorSets(&allocInfo, vkDescriptorSets.data()) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate descriptor sets");
 		}
-		for (int i = 0; i < descriptorSets.size(); ++i) {
+        for (size_t i = 0; i < descriptorSets.size(); ++i) {
 			descriptorSets[i]->descriptorSet = vkDescriptorSets[i];
 		}
 	}

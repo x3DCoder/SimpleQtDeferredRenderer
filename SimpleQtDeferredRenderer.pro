@@ -74,3 +74,5 @@ shaders.commands = mkdir -p shaders && for s in $${DISTFILES} ; do glslangValida
 QMAKE_EXTRA_TARGETS += shaders
 POST_TARGETDEPS += shaders
 
+QMAKE_CXXFLAGS += -Wno-unused-parameter
+QMAKE_CXXFLAGS += -Wno-unknown-pragmas
