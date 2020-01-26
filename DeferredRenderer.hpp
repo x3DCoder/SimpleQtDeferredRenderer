@@ -4,17 +4,34 @@
 using namespace v4d::graphics;
 
 class DeferredRenderer : public Renderer {
-private: 
-	using Renderer::Renderer;
+    using Renderer::Renderer; // use parent constructor
+
+private: // Shaders
+
+    PipelineLayout rasterizationLayout, lightingLayout;
+
+    RasterShaderPipeline primitivesShader {rasterizationLayout, {
+        "shaders/primitives.vert",
+        "shaders/primitives.frag",
+    }};
+
+    RasterShaderPipeline lightingShader {lightingLayout, {
+        "shaders/lighting.vert",
+        "shaders/lighting.frag",
+    }};
+
+private: // Render passes
+    RenderPass rasterizationPass, lightingPass;
+
+private: // Images
+
+
+private: // Buffers
+
 
 private: // Init
-	void Init() override {
-		
-	}
-
-	void ScorePhysicalDeviceSelection(int& score, PhysicalDevice* physicalDevice) override {
-		
-	}
+    void Init() override {}
+    void ScorePhysicalDeviceSelection(int&, PhysicalDevice*) override {}
 
 	void InitLayouts() override {
 		
@@ -59,7 +76,7 @@ private: // Commands
 		TransitionImageLayout(commandBuffer, swapChain->images[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 	
-	void RunDynamicGraphics(VkCommandBuffer commandBuffer) override {
+    void RunDynamicGraphics(VkCommandBuffer) override {
 		
 	}
 	
@@ -79,7 +96,7 @@ public: // Scene configuration
 	
 public: // Update
 
-	void FrameUpdate(uint imageIndex) override {
+    void FrameUpdate(uint) override {
 		
 	}
 	

@@ -1,4 +1,4 @@
-QT       += core gui
+QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -36,6 +36,7 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    DeferredRenderer.hpp \
     libs/v4d/common.h \
     libs/v4d/graphics/vulkan/Buffer.h \
     libs/v4d/graphics/vulkan/ComputeShaderPipeline.h \
@@ -58,9 +59,18 @@ HEADERS += \
 INCLUDEPATH += libs/xvk
 INCLUDEPATH += libs/xvk/glm
 
-LIBS += -ldl
-
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES += \
+    shaders/lighting.frag \
+    shaders/lighting.vert \
+    shaders/primitives.frag \
+    shaders/primitives.vert
+
+shaders.commands = mkdir -p shaders && for s in $${DISTFILES} ; do glslangValidator -V ../$${TARGET}/\"\$\$s\" -o \"\$\$s\".spv ; done
+QMAKE_EXTRA_TARGETS += shaders
+POST_TARGETDEPS += shaders
+
