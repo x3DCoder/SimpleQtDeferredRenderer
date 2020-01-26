@@ -64,15 +64,27 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+# Shaders
 DISTFILES += \
     shaders/lighting.frag \
     shaders/lighting.vert \
     shaders/primitives.frag \
     shaders/primitives.vert
-
-shaders.commands = mkdir -p shaders && for s in $${DISTFILES} ; do glslangValidator -V ../$${TARGET}/\"\$\$s\" -o \"\$\$s\".spv ; done
-QMAKE_EXTRA_TARGETS += shaders
-POST_TARGETDEPS += shaders
+linux {
+  shaders.commands = for s in $${DISTFILES} ; \
+    do glslangValidator -V ../$${TARGET}/\"\$\$s\" -o ../$${TARGET}/\"\$\$s\".spv ; \
+    done ; \
+    mkdir -p shaders && cp ../$${TARGET}/shaders/*.spv shaders/
+  QMAKE_EXTRA_TARGETS += shaders
+  POST_TARGETDEPS += shaders
+}
+win32 {
+  QMAKE_POST_LINK += $(MKDIR) $$quote(.\\shaders\\) $$escape_expand(\\n\\t)
+  for (FILE, DISTFILES) {
+    win32:FILE ~= s,/,\\,g
+    QMAKE_POST_LINK += $$QMAKE_COPY $$quote(..\\$${TARGET}\\$${FILE}.spv) $$quote(.\\shaders\\) $$escape_expand(\\n\\t)
+  }
+}
 
 # I am using region pragmas to help organize code in vscode, its a shame that Qt does not support them
 # anyhow, I am not too worried about mistakenly having unknown pragmas for this simple project, suppressing warnings is acceptable.
