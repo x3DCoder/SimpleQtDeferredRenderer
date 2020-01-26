@@ -20,8 +20,13 @@ namespace v4d::graphics::vulkan {
 		void LoadAvailablePhysicalDevices();
 
 	public:
-		Instance(vulkan::Loader* loader, const char* applicationName, uint applicationVersion, bool logging = false);
-		virtual ~Instance();
+        #ifdef XVK_USE_QT_VULKAN_LOADER
+            Instance(vulkan::Loader* loader);
+        #else
+            Instance(vulkan::Loader* loader, const char* applicationName, uint applicationVersion, bool logging = false);
+        #endif
+
+        virtual ~Instance();
 
 		VkInstance GetHandle() const;
 

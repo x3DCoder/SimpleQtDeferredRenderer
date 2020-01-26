@@ -74,5 +74,17 @@ shaders.commands = mkdir -p shaders && for s in $${DISTFILES} ; do glslangValida
 QMAKE_EXTRA_TARGETS += shaders
 POST_TARGETDEPS += shaders
 
-QMAKE_CXXFLAGS += -Wno-unused-parameter
+# I am using region pragmas to help organize code in vscode, its a shame that Qt does not support them
+# anyhow, I am not too worried about mistakenly having unknown pragmas for this simple project, suppressing warnings is acceptable.
 QMAKE_CXXFLAGS += -Wno-unknown-pragmas
+
+win32 {
+  # On windows, the compiler does not like the unused variables in C++17's structured bindings
+  # and having [[maybe-unused]] inside them would make the code very uggly...
+  # I am developing with Linux in which GCC have better support for these
+  # hence removing the unused variables warnings only for windows is great
+  # because I can still see these warnings on Linux when actually debugging.
+  # We would definitely need to find a better handling of unused variables in structured bindings for the sake of windows devs
+  # but for the sake of this simple project, this will do for now.
+  QMAKE_CXXFLAGS += -Wno-unused-variable
+}

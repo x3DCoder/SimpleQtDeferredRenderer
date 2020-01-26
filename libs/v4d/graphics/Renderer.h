@@ -163,7 +163,11 @@ namespace v4d::graphics {
     public:
 
         // Constructor & Destructor
-        Renderer(Loader* loader, const char* applicationName, uint applicationVersion, QWindow* window);
+        #ifdef XVK_USE_QT_VULKAN_LOADER
+            Renderer(Loader* loader, QWindow* window);
+        #else
+            Renderer(Loader* loader, const char* applicationName, uint applicationVersion, QWindow* window);
+        #endif
         ~Renderer() override;
 
         void Render();

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     window.show();
 
     // Renderer
-    DeferredRenderer renderer(&vulkanLoader, "Simple Deferred Renderer", VK_MAKE_VERSION(1, 0, 0), &window);
+    DeferredRenderer renderer(&vulkanLoader, &window);
     renderer.preferredPresentModes = {
 		VK_PRESENT_MODE_MAILBOX_KHR,
 		VK_PRESENT_MODE_FIFO_KHR,
@@ -58,10 +58,12 @@ int main(int argc, char *argv[]) {
     });
 
     // Wait until window is closed and rendering is finished
-    app.exec();
+    int appReturnValue = app.exec();
     gameLoopThread.join();
 
     // Unload
 	renderer.UnloadRenderer();
 	renderer.UnloadScene();
+
+    return appReturnValue;
 }

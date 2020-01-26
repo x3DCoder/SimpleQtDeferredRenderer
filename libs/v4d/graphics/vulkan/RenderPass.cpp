@@ -108,7 +108,7 @@ void RenderPass::Begin(Device* device, VkCommandBuffer commandBuffer, VkOffset2D
 	renderPassInfo.renderArea.extent = extent;
 	renderPassInfo.clearValueCount = clearValues.size();
 	renderPassInfo.pClearValues = clearValues.data();
-	device->CmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    device->CmdBeginRenderPass(commandBuffer, &renderPassInfo, contents);
 }
 
 void RenderPass::Begin(Device* device, VkCommandBuffer commandBuffer, SwapChain* swapChain, const std::vector<VkClearValue>& clearValues, int imageIndex, VkSubpassContents contents) {

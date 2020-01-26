@@ -95,11 +95,11 @@ void Buffer::UnmapMemory(Device* device) {
 	data = nullptr;
 }
 
-void Buffer::WriteToMappedData(Device* device, void* inputData, size_t copySize) {
+void Buffer::WriteToMappedData(void* inputData, size_t copySize) {
 	memcpy(data, inputData, copySize == 0 ? size : copySize);
 }
 
-void Buffer::ReadFromMappedData(Device* device, void* outputData, size_t copySize) {
+void Buffer::ReadFromMappedData(void* outputData, size_t copySize) {
 	memcpy(outputData, data, copySize == 0 ? size : copySize);
 }
 

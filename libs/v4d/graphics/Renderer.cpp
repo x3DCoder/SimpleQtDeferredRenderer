@@ -781,8 +781,8 @@ void Renderer::UnloadGraphicsFromDevice() {
 #pragma region Constructor & Destructor
 
 #ifdef XVK_USE_QT_VULKAN_LOADER
-	Renderer::Renderer(Loader* loader, const char* applicationName, uint applicationVersion, QWindow* window)
-	: Instance(loader, applicationName, applicationVersion, true) {
+	Renderer::Renderer(Loader* loader, QWindow* window)
+    : Instance(loader) {
 		surface = QVulkanInstance::surfaceForWindow(window);
 		if (!surface) throw std::runtime_error("Failed to fetch vulkan surface");
 	}
