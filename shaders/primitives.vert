@@ -8,7 +8,7 @@ layout(set = 0, binding = 0) uniform Camera {
 	int width;
 	int height;
 	dvec3 worldPosition;
-	double fov0;
+	double fov;
 	dvec3 lookDirection;
 	double znear;
 	dvec3 viewUp;
@@ -24,7 +24,6 @@ layout(std430, push_constant) uniform ModelViewMatrix {
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 color;
-layout(location = 3) in vec2 uv;
 
 struct V2F {
 	vec3 pos;

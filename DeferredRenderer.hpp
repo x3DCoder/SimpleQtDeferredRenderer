@@ -312,7 +312,23 @@ public: // Scene configuration
 	}
 	
 	void LoadScene() override {
-		//TODO create geometries
+		// Point light
+		lightSources.push_back({POINT_LIGHT, {1, 3, 10}});
+
+		// Triangle
+		sceneObjects.push_back({
+			// position
+			{0, 0, -10},
+			{ // Vertices
+				{/*pos*/{-1, 0,-1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
+				{/*pos*/{ 1, 0,-1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
+				{/*pos*/{ 0, 0, 1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
+			},
+			{ // Indices
+				0,1,2,
+			}
+		});
+
 	}
 	
 	void UnloadScene() override {
@@ -323,6 +339,11 @@ public: // Update
 
     void FrameUpdate(uint) override {
 		//TODO update camera
+
+		camera.RefreshViewMatrix();
+		camera.width = swapChain->extent.width;
+		camera.height = swapChain->extent.height;
+		camera.RefreshProjectionMatrix();
 
 		// Update objects
 		for (auto& obj : sceneObjects) {

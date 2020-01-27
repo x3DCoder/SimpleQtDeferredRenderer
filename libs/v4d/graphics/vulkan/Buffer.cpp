@@ -130,10 +130,12 @@ StagedBuffer::StagedBuffer(VkBufferUsageFlags usage, VkDeviceSize size, bool ali
 
 void StagedBuffer::AddSrcDataPtr(void* srcDataPtr, size_t size) {
 	stagingBuffer.AddSrcDataPtr(srcDataPtr, size);
+	deviceLocalBuffer.AddSrcDataPtr(srcDataPtr, size);
 }
 
 void StagedBuffer::ResetSrcData() {
 	stagingBuffer.ResetSrcData();
+	deviceLocalBuffer.ResetSrcData();
 }
 
 void StagedBuffer::Allocate(Device* device, VkMemoryPropertyFlags properties) {

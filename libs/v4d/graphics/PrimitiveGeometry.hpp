@@ -8,6 +8,8 @@ namespace v4d::graphics {
 		alignas(16) vec3 pos;
 		alignas(16) vec3 normal;
 		alignas(16) vec3 color;
+
+        Vertex(vec3 p, vec3 n, vec3 c) : pos(p), normal(n), color(c) {}
 		
 		static std::vector<VertexInputAttributeDescription> GetInputAttributes() {
 			return {
@@ -19,15 +21,16 @@ namespace v4d::graphics {
     };
     
     struct PrimitiveGeometry {
-        vec3 position {0};
-        std::vector<Vertex> vertices {};
-        std::vector<uint32_t> indices {};
+        vec3 position;
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
 
         mat4 modelViewMatrix {1};
         StagedBuffer vertexBuffer {VK_BUFFER_USAGE_VERTEX_BUFFER_BIT};
         StagedBuffer indexBuffer {VK_BUFFER_USAGE_INDEX_BUFFER_BIT};
 
-        PrimitiveGeometry() {
+        PrimitiveGeometry(vec3 p = {0,0,0}, std::vector<Vertex> v = {}, std::vector<uint32_t> i = {})
+        : position(p), vertices(v), indices(i) {
             vertexBuffer.AddSrcDataPtr(&vertices);
             indexBuffer.AddSrcDataPtr(&indices);
         }
