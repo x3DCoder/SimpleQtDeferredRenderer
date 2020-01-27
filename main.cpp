@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         glm::dvec3 viewUp = {0,0,1};
         glm::dvec3 viewForward {0,1,0};
         glm::dvec3 viewRight = glm::cross(viewForward, viewUp);
-        bool useFreeFlyCam = true;
+        bool useFreeFlyCam = false;
         glm::dmat4 freeFlyCamRotationMatrix {1};
     } player;
 
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
                 
                 player.worldPosition += player.velocity * deltaTime;
 
-                if (true) {
+                if (window.isAnyMouseBtnDown()) {
                     auto[x, y] = window.getMouseMovements();
                     if (player.useFreeFlyCam) {
                         if (x != 0) {

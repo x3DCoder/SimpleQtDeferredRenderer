@@ -20,9 +20,21 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event) {
     keysPressed.push_back(event->key());
 }
 
+void MainWindow::mousePressEvent(QMouseEvent *) {
+    mouseBtnDown = true;
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *) {
+    mouseBtnDown = false;
+}
+
 bool MainWindow::isKeyDown(int key) {
     std::lock_guard lock(eventMutex);
     return keysDown[key];
+}
+
+bool MainWindow::isAnyMouseBtnDown() const {
+    return mouseBtnDown;
 }
 
 bool MainWindow::wasKeyPressed(int key) {

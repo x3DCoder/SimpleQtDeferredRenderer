@@ -14,15 +14,21 @@ class MainWindow : public QWindow
     float mouseX = 0;
     float mouseY = 0;
 
+    bool mouseBtnDown = false;
+
 public:
     std::recursive_mutex eventMutex;
     
     MainWindow(QWindow* parent = nullptr);
     ~MainWindow();
 
-    void keyPressEvent(QKeyEvent* event);
-    void keyReleaseEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    
     bool isKeyDown(int key);
+    bool isAnyMouseBtnDown() const;
     bool wasKeyPressed(int key);
     void resetEvents();
     
