@@ -9,13 +9,11 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     std::lock_guard lock(eventMutex);
-    std::cout << "KeyPress: " << event->key() << std::endl;
     keysDown[event->key()] = true;
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event) {
     std::lock_guard lock(eventMutex);
-    std::cout << "KeyRelease: " << event->key() << std::endl;
     keysDown[event->key()] = false;
     keysPressed.push_back(event->key());
 }
