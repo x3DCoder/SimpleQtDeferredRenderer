@@ -43,6 +43,7 @@ private: // Images
 	Image gBuffer_position { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
 	DepthStencilImage depthStencilImage {};
 	DepthImage spotLightShadowMap { VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT };
+	int shadowMapSize = 1024;
 
 	std::vector<VkClearValue> clearValues{4};
 
@@ -99,7 +100,7 @@ private: // Resources
 		gBuffer_albedo.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_normal.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_position.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
-		spotLightShadowMap.Create(renderingDevice, 512, 512);
+		spotLightShadowMap.Create(renderingDevice, shadowMapSize, shadowMapSize);
 	}
 	
 	void DestroyResources() override {
@@ -340,7 +341,7 @@ private: // Commands
 
 		// Shadow map
 		for (auto& lightSource : lightSources) {
-			if (lightSource.type == 1) {
+			if (lightSource.type == SPOT_LIGHT) {
 				shadowPass.Begin(renderingDevice, commandBuffer, spotLightShadowMap, clearValues);
 				for (auto& obj : sceneObjects) {
 					PrimitiveGeometry::MVP mvp {
@@ -375,10 +376,10 @@ public: // Scene configuration
 	
 	void LoadScene() override {
 		// Light Sources
-		lightSources.push_back({POINT_LIGHT, /*position*/{ -8,-4, 10}, /*color*/{1,0,0}, /*intensity*/0.3});
-		lightSources.push_back({POINT_LIGHT, /*position*/{ 18, 4,  2}, /*color*/{0,1,0}, /*intensity*/0.3});
-		lightSources.push_back({POINT_LIGHT, /*position*/{-12, 0,  5}, /*color*/{0,0,1}, /*intensity*/0.3});
-		lightSources.push_back({SPOT_LIGHT,  /*position*/{  3, 0, 18}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
+		lightSources.push_back({POINT_LIGHT, /*position*/{ -8,-4, 10}, /*color*/{1,0,0}, /*intensity*/0.5});
+		lightSources.push_back({POINT_LIGHT, /*position*/{ 18, 4,  2}, /*color*/{0,1,0}, /*intensity*/0.5});
+		lightSources.push_back({POINT_LIGHT, /*position*/{-12, 0,  5}, /*color*/{0,0,1}, /*intensity*/0.5});
+		lightSources.push_back({SPOT_LIGHT,  /*position*/{  0, 0, 20}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{-0.1,0.1,-1}, /*inner angle*/20, /*outer angle*/30});
 
 		// Multicolor Triangle
 		sceneObjects.push_back({

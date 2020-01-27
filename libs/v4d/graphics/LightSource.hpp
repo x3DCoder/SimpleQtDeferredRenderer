@@ -49,11 +49,11 @@ namespace v4d::graphics {
         {}
 
         mat4 MakeLightProjectionMatrix() {
-            return mat4(Camera::MakeProjectionMatrix(outerAngle, 1.0, 0.01, 1000.0));
+            return mat4(Camera::MakeProjectionMatrix(outerAngle*2.0, 1.0, 0.5, 100.0));
         }
 
         mat4 MakeLightViewMatrix(const Camera& camera) {
-            return mat4(lookAt(worldPosition, worldPosition + dvec3(worldDirection), camera.viewUp));
+            return mat4(lookAt(worldPosition, worldPosition + dvec3(normalize(worldDirection)), camera.viewUp));
         }
 
         LightSourcePushConstant MakePushConstantFromCamera(const Camera& camera) {
@@ -63,7 +63,7 @@ namespace v4d::graphics {
                 intensity,
                 camera.viewMatrix * vec4(worldPosition, 1),
                 innerAngle,
-                transpose(inverse(mat3(camera.viewMatrix))) * worldDirection,
+                transpose(inverse(mat3(camera.viewMatrix))) * normalize(worldDirection),
                 outerAngle,
                 MakeLightProjectionMatrix() * MakeLightViewMatrix(camera) * glm::mat4(inverse(camera.viewMatrix))
             };

@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         double camSpeed = 10.0, mouseSensitivity = 1.0, tiltSpeed = 2.0;
         double horizontalAngle = 0;
         double verticalAngle = 0;
-        glm::dvec3 worldPosition {0};
+        glm::dvec3 worldPosition {0,-3,0};
         glm::dvec3 velocity {0};
         glm::dvec3 viewUp = {0,0,1};
         glm::dvec3 viewForward {0,1,0};

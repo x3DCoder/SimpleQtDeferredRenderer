@@ -64,6 +64,24 @@ void main(void) {
 		float theta = dot(lightDir, normalize(-lightSource.viewDirection));
 		float epsilon = (innerCutOff - outerCutOff);
 		float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
+
+		// Shadow map
+		float shadow = 0.0;
+		vec4 pos = lightSource.cameraViewToShadowMapMatrix * vec4(gBuffers.position, 1);
+		vec3 lightSpacePos = (pos.xyz / abs(pos.w));
+		lightSpacePos.z = clamp(lightSpacePos.z, 0, 1);
+		float shadowBias = max(0.01 * (1.0 - dot(lightDir, norm)), 0.001);
+		int pcfSampleSize = 5;
+		vec2 shadowMapSize = 1.0 / textureSize(shadowMap, 0);
+		for (int x = -pcfSampleSize; x <= pcfSampleSize; ++x) {
+			for (int y = -pcfSampleSize; y <= pcfSampleSize; ++y) {
+				float depthMap = texture(shadowMap, lightSpacePos.xy / 2.0 + 0.5 + vec2(x,y) * shadowMapSize).r;
+				shadow += (depthMap - shadowBias) > lightSpacePos.z? 1 : 0;
+			}
+		}
+		shadow /= (pcfSampleSize*2+1)*(pcfSampleSize*2+1);
+		intensity *= (1-min(1,shadow));
+
 		diffuse *= intensity;
 		specular *= intensity;
 	}
