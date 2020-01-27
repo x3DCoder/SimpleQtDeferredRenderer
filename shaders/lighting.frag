@@ -52,8 +52,24 @@ layout(location = 0) out vec4 out_color;
 void main(void) {
     GBuffers gBuffers = LoadGBuffers();
 	vec3 color = gBuffers.albedo.rgb;
-	
-    // TODO lighting
 
+	// Blinn-Phong
+
+	// diffuse
+	vec3 norm = normalize(gBuffers.normal);
+	vec3 lightDir = normalize(lightSource.viewPosition - gBuffers.position);
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec3 diffuse = diff * lightSource.color * lightSource.intensity;
+
+	// specular
+	float specularStrength = 0.5;
+	vec3 viewDir = normalize(-gBuffers.position);
+	vec3 reflectDir = reflect(-lightDir, norm);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specular = specularStrength * spec * lightSource.color;
+
+	color *= diffuse + specular;
+
+	if (length(color) < 0.001) discard;
 	out_color = vec4(color, 1);
 }

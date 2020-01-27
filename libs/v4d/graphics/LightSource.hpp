@@ -26,8 +26,8 @@ namespace v4d::graphics {
             LightSourceType type, 
             dvec3 worldPosition, 
             vec3 color = vec3{1}, 
-            float intensity = 0, 
-            dvec3 worldDirection = dvec3{0},
+            float intensity = 1, 
+            dvec3 worldDirection = dvec3{1},
             float innerAngle = 0, 
             float outerAngle = 0
         ) : 

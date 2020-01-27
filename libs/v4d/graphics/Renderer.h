@@ -98,7 +98,7 @@ namespace v4d::graphics {
 
         // Commands
         virtual void RecordGraphicsCommandBuffer(VkCommandBuffer, int imageIndex) = 0;
-        virtual void RunDynamicGraphics(VkCommandBuffer) = 0;
+        virtual void RunDynamicGraphics(VkCommandBuffer, int imageIndex) = 0;
 
     protected: // Create/Destroy
 

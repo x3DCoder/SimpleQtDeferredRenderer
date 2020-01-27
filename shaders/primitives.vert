@@ -36,6 +36,6 @@ layout(location = 0) out V2F v2f;
 void main(void) {
     gl_Position = mat4(camera.projectionMatrix) * modelViewMatrix * vec4(pos, 1);
     v2f.pos = (modelViewMatrix * vec4(pos, 1)).xyz;
-    v2f.normal = normalize(transpose(inverse(mat3(modelViewMatrix))) * normal).xyz;
+    v2f.normal = normalize(transpose(inverse(mat3(modelViewMatrix))) * normal);
     v2f.color = color;
 }

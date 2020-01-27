@@ -863,7 +863,7 @@ void Renderer::Render() {
 		if (renderingDevice->BeginCommandBuffer(graphicsDynamicCommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
 			throw std::runtime_error("Faild to begin recording command buffer");
 		}
-		RunDynamicGraphics(graphicsDynamicCommandBuffers[imageIndex]);
+		RunDynamicGraphics(graphicsDynamicCommandBuffers[imageIndex], imageIndex);
 		if (renderingDevice->EndCommandBuffer(graphicsDynamicCommandBuffers[imageIndex]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to record command buffer");
 		}

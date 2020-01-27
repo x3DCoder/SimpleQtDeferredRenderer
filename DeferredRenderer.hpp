@@ -282,16 +282,9 @@ private: // Pipelines
 	
 private: // Commands
 
-	void RecordGraphicsCommandBuffer(VkCommandBuffer commandBuffer, int imageIndex) override {
-		// Lighting
-		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, {{.0,.0,.0,.0}}, imageIndex);
-		for (auto& lightSource : lightSources) {
-			lightingShader.Execute(renderingDevice, commandBuffer, 1, &lightSource);
-		}
-		lightingPass.End(renderingDevice, commandBuffer);
-	}
+	void RecordGraphicsCommandBuffer(VkCommandBuffer, int) override {}
 	
-    void RunDynamicGraphics(VkCommandBuffer commandBuffer) override {
+    void RunDynamicGraphics(VkCommandBuffer commandBuffer, int imageIndex) override {
 		// Update camera uniform buffer with current data
 		cameraUniformBuffer.Update(renderingDevice, commandBuffer);
 
@@ -302,6 +295,13 @@ private: // Commands
 			primitivesShader.Execute(renderingDevice, commandBuffer, 1, &obj.modelViewMatrix);
 		}
 		rasterizationPass.End(renderingDevice, commandBuffer);
+
+		// Lighting
+		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, {{.0,.0,.0,.0}}, imageIndex);
+		for (auto& lightSource : lightSources) {
+			lightingShader.Execute(renderingDevice, commandBuffer, 1, &lightSource);
+		}
+		lightingPass.End(renderingDevice, commandBuffer);
 	}
 	
 public: // Scene configuration
@@ -313,7 +313,7 @@ public: // Scene configuration
 	
 	void LoadScene() override {
 		// Point light
-		lightSources.push_back({POINT_LIGHT, {1, 3, 10}});
+		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 20}, /*color*/{1,1,1}, /*intensity*/1.0});
 
 		// Multicolor Triangle
 		sceneObjects.push_back({
@@ -361,16 +361,16 @@ public: // Scene configuration
 				{/*pos*/{-1,-1, 1}, /*normal*/{-1,0,0}, /*color*/{0.5,0.5,0.5}},
 				
 				// top
-				{/*pos*/{-1,-1, 1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{ 1,-1, 1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{ 1, 1, 1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{-1, 1, 1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{-1,-1, 1}, /*normal*/{0,0,1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{ 1,-1, 1}, /*normal*/{0,0,1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{ 1, 1, 1}, /*normal*/{0,0,1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{-1, 1, 1}, /*normal*/{0,0,1}, /*color*/{0.5,0.5,0.5}},
 
 				// bottom
-				{/*pos*/{-1,-1,-1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{ 1,-1,-1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{ 1, 1,-1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
-				{/*pos*/{-1, 1,-1}, /*normal*/{1,0,0}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{-1,-1,-1}, /*normal*/{0,0,-1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{ 1,-1,-1}, /*normal*/{0,0,-1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{ 1, 1,-1}, /*normal*/{0,0,-1}, /*color*/{0.5,0.5,0.5}},
+				{/*pos*/{-1, 1,-1}, /*normal*/{0,0,-1}, /*color*/{0.5,0.5,0.5}},
 
 			},
 			{ // Indices
@@ -394,12 +394,18 @@ public: // Update
 
     void FrameUpdate(uint) override {
 		// Update camera
-		camera.RefreshViewMatrix();
 		camera.width = swapChain->extent.width;
 		camera.height = swapChain->extent.height;
 		camera.RefreshProjectionMatrix();
+		camera.RefreshViewMatrix();
 
-		// Update objects
+		// Update lights matrices
+		for (auto& lightSource : lightSources) {
+			lightSource.viewPosition = camera.viewMatrix * glm::dvec4(lightSource.worldPosition, 1);
+			lightSource.viewDirection = glm::transpose(glm::inverse(glm::mat3(camera.viewMatrix))) * lightSource.worldDirection;
+		}
+
+		// Update objects matrices
 		for (auto& obj : sceneObjects) {
 			obj.modelViewMatrix = camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), obj.position));
 		}
