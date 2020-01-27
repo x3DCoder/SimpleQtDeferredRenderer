@@ -17,6 +17,9 @@ int main(int argc, char *argv[]) {
     
     // Qt Window
     MainWindow window;
+    vulkanInstance.setLayers(QByteArrayList()
+        << "VK_LAYER_LUNARG_standard_validation"
+    );
     vulkanInstance.setExtensions(QByteArrayList()
         << "VK_KHR_surface"
         << "VK_KHR_xcb_surface"
@@ -134,16 +137,15 @@ int main(int argc, char *argv[]) {
             using namespace std::literals::chrono_literals;
             std::this_thread::sleep_for(10ms);
         }
+        // Unload
+        renderer.UnloadRenderer();
+        renderer.UnloadScene();
         window.close();
     });
 
     // Wait until window is closed and rendering is finished
     int appReturnValue = app.exec();
     gameLoopThread.join();
-
-    // Unload
-	renderer.UnloadRenderer();
-	renderer.UnloadScene();
 
     return appReturnValue;
 }

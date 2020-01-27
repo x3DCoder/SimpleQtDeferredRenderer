@@ -24,19 +24,25 @@ private: // Shaders
         "shaders/primitives.frag",
     }};
 
+    RasterShaderPipeline shadowMapShader {rasterizationLayout, {
+        "shaders/primitives.shadow.vert",
+        "shaders/primitives.shadow.frag",
+    }};
+
     RasterShaderPipeline lightingShader {lightingLayout, {
         "shaders/lighting.vert",
         "shaders/lighting.frag",
     }};
 
 private: // Render passes
-    RenderPass rasterizationPass, lightingPass;
+    RenderPass rasterizationPass, shadowPass, lightingPass;
 
 private: // Images
 	Image gBuffer_albedo { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32A32_SFLOAT }};
 	Image gBuffer_normal { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R16G16B16_SNORM, VK_FORMAT_R16G16B16A16_SNORM }};
 	Image gBuffer_position { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
-	DepthStencilImage depthImage {};
+	DepthStencilImage depthStencilImage {};
+	DepthImage spotLightShadowMap { VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT };
 
 	std::vector<VkClearValue> clearValues{4};
 
@@ -57,6 +63,7 @@ private: // Init
 		gBuffersDescriptorSet_1->AddBinding_inputAttachment(0, &gBuffer_albedo.view, VK_SHADER_STAGE_FRAGMENT_BIT);
 		gBuffersDescriptorSet_1->AddBinding_inputAttachment(1, &gBuffer_normal.view, VK_SHADER_STAGE_FRAGMENT_BIT);
 		gBuffersDescriptorSet_1->AddBinding_inputAttachment(2, &gBuffer_position.view, VK_SHADER_STAGE_FRAGMENT_BIT);
+		gBuffersDescriptorSet_1->AddBinding_combinedImageSampler(3, &spotLightShadowMap, VK_SHADER_STAGE_FRAGMENT_BIT);
 		lightingLayout.AddDescriptorSet(baseDescriptorSet_0);
 		lightingLayout.AddDescriptorSet(gBuffersDescriptorSet_1);
 		lightingLayout.AddPushConstant<LightSource>(VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -69,6 +76,13 @@ private: // Init
 		primitivesShader.depthStencilState.depthWriteEnable = VK_TRUE;
         primitivesShader.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         primitivesShader.AddVertexInputBinding(sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX, Vertex::GetInputAttributes());
+
+		// Shadow map
+		shadowMapShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		shadowMapShader.depthStencilState.depthTestEnable = VK_TRUE;
+		shadowMapShader.depthStencilState.depthWriteEnable = VK_TRUE;
+        shadowMapShader.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        shadowMapShader.AddVertexInputBinding(sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX, Vertex::GetInputAttributes());
 		
 		// Lighting Pass
 		lightingShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -81,17 +95,19 @@ private: // Init
 private: // Resources
 
 	void CreateResources() override {
-		depthImage.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
+		depthStencilImage.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_albedo.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_normal.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_position.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
+		spotLightShadowMap.Create(renderingDevice, 512, 512);
 	}
 	
 	void DestroyResources() override {
-		depthImage.Destroy(renderingDevice);
+		depthStencilImage.Destroy(renderingDevice);
 		gBuffer_albedo.Destroy(renderingDevice);
 		gBuffer_normal.Destroy(renderingDevice);
 		gBuffer_position.Destroy(renderingDevice);
+		spotLightShadowMap.Destroy(renderingDevice);
 	}
 	
 	void AllocateBuffers() override {
@@ -124,7 +140,7 @@ private: // Pipelines
 				&gBuffer_albedo,
 				&gBuffer_normal,
 				&gBuffer_position,
-				&depthImage,
+				&depthStencilImage,
 			};
 
 			std::array<VkAttachmentDescription, images.size()> attachments {};
@@ -181,6 +197,37 @@ private: // Pipelines
 			for (size_t i = 0; i < gBuffers.size(); ++i)
 				primitivesShader.AddColorBlendAttachmentState(VK_FALSE);
 			primitivesShader.CreatePipeline(renderingDevice);
+		}
+		
+		{// Shadow pass
+			VkAttachmentDescription depthAttachment {};
+			depthAttachment.format = spotLightShadowMap.format;
+			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+			VkAttachmentReference depthAttachmentRef {
+				shadowPass.AddAttachment(depthAttachment),
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			};
+			
+			// SubPass
+			VkSubpassDescription subpass = {};
+				subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+				subpass.pDepthStencilAttachment = &depthAttachmentRef;
+			shadowPass.AddSubpass(subpass);
+			
+			// Create the render pass
+			shadowPass.Create(renderingDevice);
+			shadowPass.CreateFrameBuffers(renderingDevice, spotLightShadowMap);
+			
+			// Shader
+			shadowMapShader.SetRenderPass(&spotLightShadowMap, shadowPass.handle, 0);
+			shadowMapShader.CreatePipeline(renderingDevice);
 		}
 		
 		{// Lighting pass
@@ -260,14 +307,17 @@ private: // Pipelines
 	void DestroyPipelines() override {
 		// shader pipelines
 		primitivesShader.DestroyPipeline(renderingDevice);
+		shadowMapShader.DestroyPipeline(renderingDevice);
 		lightingShader.DestroyPipeline(renderingDevice);
 
 		// frame buffers
 		rasterizationPass.DestroyFrameBuffers(renderingDevice);
+		shadowPass.DestroyFrameBuffers(renderingDevice);
 		lightingPass.DestroyFrameBuffers(renderingDevice);
 
 		// render passes
 		rasterizationPass.Destroy(renderingDevice);
+		shadowPass.Destroy(renderingDevice);
 		lightingPass.Destroy(renderingDevice);
 
 		// layouts
@@ -288,6 +338,24 @@ private: // Commands
 		}
 		rasterizationPass.End(renderingDevice, commandBuffer);
 
+		// Shadow map
+		for (auto& lightSource : lightSources) {
+			if (lightSource.type == 1) {
+				shadowPass.Begin(renderingDevice, commandBuffer, spotLightShadowMap, clearValues);
+				for (auto& obj : sceneObjects) {
+					PrimitiveGeometry::MVP mvp {
+						// Make a new projection matrix and modelView matrix based on that spot light
+						glm::mat4(Camera::MakeProjectionMatrix(lightSource.outerAngle, 1.0, 0.01, 1000.0)),
+						glm::mat4(glm::lookAt(lightSource.worldPosition, lightSource.worldPosition + glm::dvec3(lightSource.worldDirection), camera.viewUp)) * glm::translate(glm::mat4(1), obj.position)
+					};
+					shadowMapShader.SetData(&obj.vertexBuffer.deviceLocalBuffer, &obj.indexBuffer.deviceLocalBuffer, obj.indices.size());
+					shadowMapShader.Execute(renderingDevice, commandBuffer, 1, &mvp);
+				}
+				shadowPass.End(renderingDevice, commandBuffer);
+				break; // We only support one shadow map for now, for one spot light
+			}
+		}
+
 		// Lighting
 		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, clearValues, imageIndex);
 		for (auto& lightSource : lightSources) {
@@ -300,15 +368,16 @@ public: // Scene configuration
 	
 	void ReadShaders() override {
 		primitivesShader.ReadShaders();
+		shadowMapShader.ReadShaders();
 		lightingShader.ReadShaders();
 	}
 	
 	void LoadScene() override {
 		// Light Sources
-		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 10}, /*color*/{1,0,0}, /*intensity*/0.3});
+		lightSources.push_back({POINT_LIGHT, /*position*/{ -8,-4, 10}, /*color*/{1,0,0}, /*intensity*/0.3});
 		lightSources.push_back({POINT_LIGHT, /*position*/{ 18, 4,  2}, /*color*/{0,1,0}, /*intensity*/0.3});
 		lightSources.push_back({POINT_LIGHT, /*position*/{-12, 0,  5}, /*color*/{0,0,1}, /*intensity*/0.3});
-		lightSources.push_back({SPOT_LIGHT,  /*position*/{ 0,  0, 18}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
+		lightSources.push_back({SPOT_LIGHT,  /*position*/{  3, 0, 18}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
 
 		// Multicolor Triangle
 		sceneObjects.push_back({

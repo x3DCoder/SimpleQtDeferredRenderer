@@ -22,9 +22,12 @@ struct GBuffers {
 	highp vec3 position;
 };
 
+// G-Buffers
 layout(set = 1, input_attachment_index = 0, binding = 0) uniform highp subpassInput gBuffer_albedo;
 layout(set = 1, input_attachment_index = 1, binding = 1) uniform lowp  subpassInput gBuffer_normal;
 layout(set = 1, input_attachment_index = 2, binding = 2) uniform highp subpassInput gBuffer_position;
+
+layout(set = 1, binding = 3) uniform sampler2D shadowMap;
 
 GBuffers LoadGBuffers() {
 	return GBuffers(

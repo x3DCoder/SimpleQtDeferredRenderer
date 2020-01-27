@@ -69,10 +69,12 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 # Shaders
 DISTFILES += \
-    shaders/lighting.frag \
     shaders/lighting.vert \
+    shaders/lighting.frag \
+    shaders/primitives.vert \
     shaders/primitives.frag \
-    shaders/primitives.vert
+    shaders/primitives.shadow.vert \
+    shaders/primitives.shadow.frag
 linux {
   shaders.commands = for s in $${DISTFILES} ; \
     do glslangValidator -V ../$${TARGET}/\"\$\$s\" -o ../$${TARGET}/\"\$\$s\".spv ; \

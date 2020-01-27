@@ -20,12 +20,17 @@ namespace v4d::graphics {
         void RefreshViewMatrix() {
             viewMatrix = lookAt(worldPosition, worldPosition + lookDirection, viewUp);
         }
-        
+
         void RefreshProjectionMatrix() {
+            projectionMatrix = MakeProjectionMatrix(fov, (double) width / height, znear, zfar);
+        }
+        
+        static dmat4 MakeProjectionMatrix(double fov, double ratio, double znear, double zfar) {
             // zfar and znear are swapped on purpose. 
             // this technique while also reversing the normal depth test operation will make the depth buffer linear again, giving it a better depth precision on the entire range. 
-            projectionMatrix = perspective(radians(fov), (double) width / height, zfar, znear);
-            projectionMatrix[1][1] *= -1;
+            dmat4 proj = perspective(radians(fov), ratio, zfar, znear);
+            proj[1][1] *= -1;
+            return proj;
         }
         
     };
