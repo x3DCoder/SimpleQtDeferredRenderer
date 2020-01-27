@@ -11,8 +11,11 @@ class MainWindow : public QWindow
     std::map<int, bool> keysDown {};
     std::vector<int> keysPressed {};
 
+    float mouseX = 0;
+    float mouseY = 0;
+
 public:
-    std::recursive_mutex keysEventMutex;
+    std::recursive_mutex eventMutex;
     
     MainWindow(QWindow* parent = nullptr);
     ~MainWindow();
@@ -21,6 +24,8 @@ public:
     void keyReleaseEvent(QKeyEvent* event);
     bool isKeyDown(int key);
     bool wasKeyPressed(int key);
-    void resetKeysPressed();
+    void resetEvents();
+    
+    std::tuple<float, float> getMouseMovements();
 
 };

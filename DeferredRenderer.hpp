@@ -318,11 +318,11 @@ public: // Scene configuration
 		// Triangle
 		sceneObjects.push_back({
 			// position
-			{0, 0, -10},
+			{0, 5, 0},
 			{ // Vertices
-				{/*pos*/{-1, 0,-1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
-				{/*pos*/{ 1, 0,-1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
-				{/*pos*/{ 0, 0, 1}, /*normal*/{0,1,0}, /*color*/{1,0,0}},
+				{/*pos*/{-1, 0,-1}, /*normal*/{0,-1,0}, /*color*/{1,0,0}},
+				{/*pos*/{ 1, 0,-1}, /*normal*/{0,-1,0}, /*color*/{0,1,0}},
+				{/*pos*/{ 0, 0, 1}, /*normal*/{0,-1,0}, /*color*/{0,0,1}},
 			},
 			{ // Indices
 				0,1,2,
@@ -332,14 +332,14 @@ public: // Scene configuration
 	}
 	
 	void UnloadScene() override {
-		
+		lightSources.clear();
+		sceneObjects.clear();
 	}
 	
 public: // Update
 
     void FrameUpdate(uint) override {
-		//TODO update camera
-
+		// Update camera
 		camera.RefreshViewMatrix();
 		camera.width = swapChain->extent.width;
 		camera.height = swapChain->extent.height;
