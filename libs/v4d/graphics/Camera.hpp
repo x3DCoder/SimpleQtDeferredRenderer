@@ -6,8 +6,6 @@ namespace v4d::graphics {
     
     struct Camera {
 
-        int width = 0;
-        int height = 0;
         dvec3 worldPosition {0};
         double fov = 70;
         dvec3 lookDirection {0,1,0};
@@ -21,8 +19,8 @@ namespace v4d::graphics {
             viewMatrix = lookAt(worldPosition, worldPosition + lookDirection, viewUp);
         }
 
-        void RefreshProjectionMatrix() {
-            projectionMatrix = MakeProjectionMatrix(fov, (double) width / height, znear, zfar);
+        void RefreshProjectionMatrix(double ratio) {
+            projectionMatrix = MakeProjectionMatrix(fov, ratio, znear, zfar);
         }
         
         static dmat4 MakeProjectionMatrix(double fov, double ratio, double znear, double zfar) {

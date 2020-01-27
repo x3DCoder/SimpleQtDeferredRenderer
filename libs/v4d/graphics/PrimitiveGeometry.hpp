@@ -1,5 +1,6 @@
 #pragma once
 #include "../common.h"
+#include "Camera.hpp"
 
 namespace v4d::graphics {
     using namespace glm;
@@ -52,6 +53,13 @@ namespace v4d::graphics {
         void FreeBuffers(Device* device) {
             vertexBuffer.Free(device);
             indexBuffer.Free(device);
+        }
+
+        void SetMvpForCamera(const Camera& camera) {
+            mvp = {
+				glm::mat4(camera.projectionMatrix),
+				glm::mat4(camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), position)))
+			};
         }
 
     };

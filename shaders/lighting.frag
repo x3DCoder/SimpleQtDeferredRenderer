@@ -5,15 +5,14 @@ precision highp float;
 precision highp sampler2D;
 
 layout(std430, push_constant) uniform LightSource {
-	dvec3 worldPosition;
+	int type; // 0 = point, 1 = spot
 	vec3 color;
 	float intensity;
-	vec3 worldDirection;
-	int type; // 0 = point, 1 = spot
 	vec3 viewPosition;
 	float innerAngle;
 	vec3 viewDirection;
 	float outerAngle;
+	mat4 cameraViewToShadowMapMatrix;
 } lightSource;
 
 struct GBuffers {

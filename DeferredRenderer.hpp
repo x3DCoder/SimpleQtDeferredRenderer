@@ -66,7 +66,7 @@ private: // Init
 		gBuffersDescriptorSet_1->AddBinding_combinedImageSampler(3, &spotLightShadowMap, VK_SHADER_STAGE_FRAGMENT_BIT);
 		lightingLayout.AddDescriptorSet(baseDescriptorSet_0);
 		lightingLayout.AddDescriptorSet(gBuffersDescriptorSet_1);
-		lightingLayout.AddPushConstant<LightSource>(VK_SHADER_STAGE_FRAGMENT_BIT);
+		lightingLayout.AddPushConstant<LightSourcePushConstant>(VK_SHADER_STAGE_FRAGMENT_BIT);
 	}
 	
 	void ConfigureShaders() override {
@@ -345,8 +345,8 @@ private: // Commands
 				for (auto& obj : sceneObjects) {
 					PrimitiveGeometry::MVP mvp {
 						// Make a new projection matrix and modelView matrix based on that spot light
-						glm::mat4(Camera::MakeProjectionMatrix(lightSource.outerAngle, 1.0, 0.01, 1000.0)),
-						glm::mat4(glm::lookAt(lightSource.worldPosition, lightSource.worldPosition + glm::dvec3(lightSource.worldDirection), camera.viewUp)) * glm::translate(glm::mat4(1), obj.position)
+						lightSource.MakeLightProjectionMatrix(),
+						lightSource.MakeLightViewMatrix(camera) * glm::translate(glm::mat4(1), obj.position)
 					};
 					shadowMapShader.SetData(&obj.vertexBuffer.deviceLocalBuffer, &obj.indexBuffer.deviceLocalBuffer, obj.indices.size());
 					shadowMapShader.Execute(renderingDevice, commandBuffer, 1, &mvp);
@@ -359,7 +359,8 @@ private: // Commands
 		// Lighting
 		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, clearValues, imageIndex);
 		for (auto& lightSource : lightSources) {
-			lightingShader.Execute(renderingDevice, commandBuffer, 1, &lightSource);
+			auto pushConstant = lightSource.MakePushConstantFromCamera(camera);
+			lightingShader.Execute(renderingDevice, commandBuffer, 1, &pushConstant);
 		}
 		lightingPass.End(renderingDevice, commandBuffer);
 	}
@@ -473,23 +474,12 @@ public: // Update
 
     void FrameUpdate(uint) override {
 		// Update camera
-		camera.width = swapChain->extent.width;
-		camera.height = swapChain->extent.height;
-		camera.RefreshProjectionMatrix();
+		camera.RefreshProjectionMatrix((double) swapChain->extent.width / swapChain->extent.height);
 		camera.RefreshViewMatrix();
-
-		// Update lights matrices
-		for (auto& lightSource : lightSources) {
-			lightSource.viewPosition = camera.viewMatrix * glm::dvec4(lightSource.worldPosition, 1);
-			lightSource.viewDirection = glm::transpose(glm::inverse(glm::mat3(camera.viewMatrix))) * lightSource.worldDirection;
-		}
 
 		// Update objects matrices
 		for (auto& obj : sceneObjects) {
-			obj.mvp = {
-				glm::mat4(camera.projectionMatrix),
-				glm::mat4(camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), obj.position)))
-			};
+			obj.SetMvpForCamera(camera);
 		}
 	}
 	
