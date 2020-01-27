@@ -15,6 +15,8 @@ public: // Scene
 	std::vector<LightSource> lightSources {};
 	std::vector<PrimitiveGeometry> sceneObjects {};
 
+	StagedBuffer cameraUBO {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Camera::viewMatrix)};
+
 private: // Shaders
 
     PipelineLayout rasterizationLayout, lightingLayout;
@@ -29,31 +31,44 @@ private: // Shaders
         "shaders/primitives.shadow.frag",
     }};
 
+    RasterShaderPipeline skyboxShader {rasterizationLayout, {
+        "shaders/skybox.vert",
+        "shaders/skybox.geom",
+        "shaders/skybox.frag",
+    }};
+
     RasterShaderPipeline lightingShader {lightingLayout, {
         "shaders/lighting.vert",
         "shaders/lighting.frag",
     }};
 
 private: // Render passes
-    RenderPass rasterizationPass, shadowPass, lightingPass;
+    RenderPass rasterizationPass, shadowPass, skyboxPass, lightingPass;
 
 private: // Images
 	Image gBuffer_albedo { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32A32_SFLOAT }};
-	Image gBuffer_normal { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R16G16B16_SNORM, VK_FORMAT_R16G16B16A16_SNORM }};
+	Image gBuffer_normal { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
 	Image gBuffer_position { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
 	DepthStencilImage depthStencilImage {};
+	
 	DepthImage spotLightShadowMap { VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT };
 	int shadowMapSize = 1024;
+
+	CubeMapImage skybox {};
+	int skyboxSize = 1024;
 
 	std::vector<VkClearValue> clearValues{4};
 
 private: // Init
-    void Init() override {}
+    void Init() override {
+		cameraUBO.AddSrcDataPtr(&camera.viewMatrix, sizeof(Camera::viewMatrix));
+	}
     void ScorePhysicalDeviceSelection(int&, PhysicalDevice*) override {}
 
 	void InitLayouts() override {
 		// Base descriptor set containing Camera and such
 		auto* baseDescriptorSet_0 = descriptorSets.emplace_back(new DescriptorSet(0));
+        baseDescriptorSet_0->AddBinding_uniformBuffer(0, &cameraUBO.deviceLocalBuffer, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Rasterization
 		rasterizationLayout.AddDescriptorSet(baseDescriptorSet_0);
@@ -65,6 +80,7 @@ private: // Init
 		gBuffersDescriptorSet_1->AddBinding_inputAttachment(1, &gBuffer_normal.view, VK_SHADER_STAGE_FRAGMENT_BIT);
 		gBuffersDescriptorSet_1->AddBinding_inputAttachment(2, &gBuffer_position.view, VK_SHADER_STAGE_FRAGMENT_BIT);
 		gBuffersDescriptorSet_1->AddBinding_combinedImageSampler(3, &spotLightShadowMap, VK_SHADER_STAGE_FRAGMENT_BIT);
+		gBuffersDescriptorSet_1->AddBinding_combinedImageSampler(4, &skybox, VK_SHADER_STAGE_FRAGMENT_BIT);
 		lightingLayout.AddDescriptorSet(baseDescriptorSet_0);
 		lightingLayout.AddDescriptorSet(gBuffersDescriptorSet_1);
 		lightingLayout.AddPushConstant<LightSourcePushConstant>(VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -85,6 +101,13 @@ private: // Init
         shadowMapShader.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         shadowMapShader.AddVertexInputBinding(sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX, Vertex::GetInputAttributes());
 		
+		// Skybox
+		skyboxShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		skyboxShader.depthStencilState.depthTestEnable = VK_FALSE;
+		skyboxShader.depthStencilState.depthWriteEnable = VK_FALSE;
+        skyboxShader.rasterizer.cullMode = VK_CULL_MODE_NONE;
+		skyboxShader.SetData(6);
+		
 		// Lighting Pass
 		lightingShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 		lightingShader.depthStencilState.depthTestEnable = VK_FALSE;
@@ -101,6 +124,7 @@ private: // Resources
 		gBuffer_normal.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		gBuffer_position.Create(renderingDevice, swapChain->extent.width, swapChain->extent.height);
 		spotLightShadowMap.Create(renderingDevice, shadowMapSize, shadowMapSize);
+		skybox.Create(renderingDevice, skyboxSize, skyboxSize);
 	}
 	
 	void DestroyResources() override {
@@ -109,15 +133,20 @@ private: // Resources
 		gBuffer_normal.Destroy(renderingDevice);
 		gBuffer_position.Destroy(renderingDevice);
 		spotLightShadowMap.Destroy(renderingDevice);
+		skybox.Destroy(renderingDevice);
 	}
 	
 	void AllocateBuffers() override {
+		cameraUBO.Allocate(renderingDevice);
+
 		for (auto& obj : sceneObjects) {
 			obj.AllocateBuffers(renderingDevice, transferQueue);
 		}
 	}
 	
 	void FreeBuffers() override {
+        cameraUBO.Free(renderingDevice);
+
 		for (auto& obj : sceneObjects) {
 			obj.FreeBuffers(renderingDevice);
 		}
@@ -231,6 +260,37 @@ private: // Pipelines
 			shadowMapShader.CreatePipeline(renderingDevice);
 		}
 		
+		{// Skybox pass
+			VkAttachmentDescription colorAttachment {};
+			colorAttachment.format = skybox.format;
+			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+			VkAttachmentReference colorAttachmentRef {
+                skyboxPass.AddAttachment(colorAttachment),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			};
+			
+			// SubPass
+			VkSubpassDescription subpass = {};
+				subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+				subpass.colorAttachmentCount = 1;
+                subpass.pColorAttachments = &colorAttachmentRef;
+			skyboxPass.AddSubpass(subpass);
+			
+			// Create the render pass
+			skyboxPass.Create(renderingDevice);
+			skyboxPass.CreateFrameBuffers(renderingDevice, skybox);
+			
+			// Shader
+			skyboxShader.SetRenderPass(&skybox, skyboxPass.handle, 0);
+			skyboxShader.AddColorBlendAttachmentState(VK_FALSE);
+			skyboxShader.CreatePipeline(renderingDevice);
+		}
+		
 		{// Lighting pass
 
 			std::array<VkImageView, gBuffers.size() + 1> imageViews {
@@ -309,16 +369,19 @@ private: // Pipelines
 		// shader pipelines
 		primitivesShader.DestroyPipeline(renderingDevice);
 		shadowMapShader.DestroyPipeline(renderingDevice);
+		skyboxShader.DestroyPipeline(renderingDevice);
 		lightingShader.DestroyPipeline(renderingDevice);
 
 		// frame buffers
 		rasterizationPass.DestroyFrameBuffers(renderingDevice);
 		shadowPass.DestroyFrameBuffers(renderingDevice);
+		skyboxPass.DestroyFrameBuffers(renderingDevice);
 		lightingPass.DestroyFrameBuffers(renderingDevice);
 
 		// render passes
 		rasterizationPass.Destroy(renderingDevice);
 		shadowPass.Destroy(renderingDevice);
+		skyboxPass.Destroy(renderingDevice);
 		lightingPass.Destroy(renderingDevice);
 
 		// layouts
@@ -331,6 +394,8 @@ private: // Commands
 	void RecordGraphicsCommandBuffer(VkCommandBuffer, int) override {}
 	
     void RunDynamicGraphics(VkCommandBuffer commandBuffer, int imageIndex) override {
+		cameraUBO.Update(renderingDevice, commandBuffer);
+
 		// Render primitives
 		rasterizationPass.Begin(renderingDevice, commandBuffer, gBuffer_albedo, clearValues);
 		for (auto& obj : sceneObjects) {
@@ -357,6 +422,11 @@ private: // Commands
 			}
 		}
 
+		// Generate Skybox
+		skyboxPass.Begin(renderingDevice, commandBuffer, skybox, clearValues);
+		skyboxShader.Execute(renderingDevice, commandBuffer);
+		skyboxPass.End(renderingDevice, commandBuffer);
+
 		// Lighting
 		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, clearValues, imageIndex);
 		for (auto& lightSource : lightSources) {
@@ -371,11 +441,13 @@ public: // Scene configuration
 	void ReadShaders() override {
 		primitivesShader.ReadShaders();
 		shadowMapShader.ReadShaders();
+		skyboxShader.ReadShaders();
 		lightingShader.ReadShaders();
 	}
 	
 	void LoadScene() override {
 		// Light Sources
+		lightSources.push_back({AMBIENT_SKYBOX, {0,0,0}, /*color*/{1,1,1}, /*intensity*/0.02});
 		lightSources.push_back({POINT_LIGHT, /*position*/{ -8,-4, 10}, /*color*/{1,0,0}, /*intensity*/0.5});
 		lightSources.push_back({POINT_LIGHT, /*position*/{ 18, 4,  2}, /*color*/{0,1,0}, /*intensity*/0.5});
 		lightSources.push_back({POINT_LIGHT, /*position*/{-12, 0,  5}, /*color*/{0,0,1}, /*intensity*/0.5});

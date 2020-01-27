@@ -8,6 +8,7 @@ namespace v4d::graphics {
     enum LightSourceType : int {
         POINT_LIGHT = 0,
         SPOT_LIGHT = 1,
+        AMBIENT_SKYBOX = 2,
     };
 
     struct LightSourcePushConstant {

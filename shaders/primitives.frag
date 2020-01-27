@@ -13,7 +13,7 @@ struct V2F {
 layout(location = 0) in V2F v2f;
 
 layout(location = 0) out highp vec4 gBuffer_albedo;
-layout(location = 1) out lowp  vec3 gBuffer_normal;
+layout(location = 1) out highp vec3 gBuffer_normal;
 layout(location = 2) out highp vec3 gBuffer_position;
 
 void main() {

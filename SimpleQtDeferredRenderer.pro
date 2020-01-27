@@ -74,7 +74,10 @@ DISTFILES += \
     shaders/primitives.vert \
     shaders/primitives.frag \
     shaders/primitives.shadow.vert \
-    shaders/primitives.shadow.frag
+    shaders/primitives.shadow.frag \
+    shaders/skybox.frag \
+    shaders/skybox.geom \
+    shaders/skybox.vert
 linux {
   shaders.commands = for s in $${DISTFILES} ; \
     do glslangValidator -V ../$${TARGET}/\"\$\$s\" -o ../$${TARGET}/\"\$\$s\".spv ; \
