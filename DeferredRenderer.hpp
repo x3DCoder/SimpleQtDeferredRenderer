@@ -3,6 +3,7 @@
 
 #include "libs/v4d/graphics/Camera.hpp"
 #include "libs/v4d/graphics/LightSource.hpp"
+#include "libs/v4d/graphics/PrimitiveGeometry.hpp"
 
 using namespace v4d::graphics;
 
@@ -12,6 +13,7 @@ class DeferredRenderer : public Renderer {
 public: // Scene
 	Camera camera;
 	std::vector<LightSource> lightSources {};
+	std::vector<PrimitiveGeometry> sceneObjects {};
 
 private: // Shaders
 
@@ -31,10 +33,17 @@ private: // Render passes
     RenderPass rasterizationPass, lightingPass;
 
 private: // Images
-	DepthStencilImage depthImage {};
 	Image gBuffer_albedo { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32A32_SFLOAT }};
 	Image gBuffer_normal { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R16G16B16_SNORM, VK_FORMAT_R16G16B16A16_SNORM }};
 	Image gBuffer_position { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
+	DepthStencilImage depthImage {};
+
+	std::vector<VkClearValue> clearValues {
+		{.0,.0,.0,.0},
+		{.0,.0,.0,.0},
+		{.0,.0,.0,.0},
+		{.0,.0},
+	};
 
 private: // Buffers
 	StagedBuffer cameraUniformBuffer {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Camera)};
@@ -52,6 +61,7 @@ private: // Init
 
 		// Rasterization
 		rasterizationLayout.AddDescriptorSet(baseDescriptorSet_0);
+        rasterizationLayout.AddPushConstant<glm::mat4>(VK_SHADER_STAGE_VERTEX_BIT);
 
 		// Lighting
 		auto* gBuffersDescriptorSet_1 = descriptorSets.emplace_back(new DescriptorSet(1));
@@ -66,9 +76,10 @@ private: // Init
 	void ConfigureShaders() override {
 		// Rasterization Pass
 		primitivesShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		lightingShader.depthStencilState.depthTestEnable = VK_TRUE;
-		lightingShader.depthStencilState.depthWriteEnable = VK_TRUE;
-        lightingShader.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		primitivesShader.depthStencilState.depthTestEnable = VK_TRUE;
+		primitivesShader.depthStencilState.depthWriteEnable = VK_TRUE;
+        primitivesShader.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        primitivesShader.AddVertexInputBinding(sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX, Vertex::GetInputAttributes());
 		
 		// Lighting Pass
 		lightingShader.inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -96,10 +107,16 @@ private: // Resources
 	
 	void AllocateBuffers() override {
 		cameraUniformBuffer.Allocate(renderingDevice);
+		for (auto& obj : sceneObjects) {
+			obj.AllocateBuffers(renderingDevice, transferQueue);
+		}
 	}
 	
 	void FreeBuffers() override {
 		cameraUniformBuffer.Free(renderingDevice);
+		for (auto& obj : sceneObjects) {
+			obj.FreeBuffers(renderingDevice);
+		}
 	}
 
 private: // Pipelines
@@ -266,12 +283,25 @@ private: // Pipelines
 private: // Commands
 
 	void RecordGraphicsCommandBuffer(VkCommandBuffer commandBuffer, int imageIndex) override {
-		// Transition swapchain image to present layout
-		TransitionImageLayout(commandBuffer, swapChain->images[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		// Lighting
+		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, {{.0,.0,.0,.0}}, imageIndex);
+		for (auto& lightSource : lightSources) {
+			lightingShader.Execute(renderingDevice, commandBuffer, 1, &lightSource);
+		}
+		lightingPass.End(renderingDevice, commandBuffer);
 	}
 	
-    void RunDynamicGraphics(VkCommandBuffer) override {
-		
+    void RunDynamicGraphics(VkCommandBuffer commandBuffer) override {
+		// Update camera uniform buffer with current data
+		cameraUniformBuffer.Update(renderingDevice, commandBuffer);
+
+		// Render primitives
+		rasterizationPass.Begin(renderingDevice, commandBuffer, gBuffer_albedo, clearValues);
+		for (auto& obj : sceneObjects) {
+			primitivesShader.SetData(&obj.vertexBuffer.deviceLocalBuffer, &obj.indexBuffer.deviceLocalBuffer, obj.indices.size());
+			primitivesShader.Execute(renderingDevice, commandBuffer, 1, &obj.modelViewMatrix);
+		}
+		rasterizationPass.End(renderingDevice, commandBuffer);
 	}
 	
 public: // Scene configuration
@@ -282,7 +312,7 @@ public: // Scene configuration
 	}
 	
 	void LoadScene() override {
-		
+		//TODO create geometries
 	}
 	
 	void UnloadScene() override {
@@ -292,7 +322,12 @@ public: // Scene configuration
 public: // Update
 
     void FrameUpdate(uint) override {
-		
+		//TODO update camera
+
+		// Update objects
+		for (auto& obj : sceneObjects) {
+			obj.modelViewMatrix = camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), obj.position));
+		}
 	}
 	
 };
