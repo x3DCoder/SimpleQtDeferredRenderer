@@ -38,12 +38,7 @@ private: // Images
 	Image gBuffer_position { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ,1,1, { VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT }};
 	DepthStencilImage depthImage {};
 
-	std::vector<VkClearValue> clearValues {
-		{.0,.0,.0,.0},
-		{.0,.0,.0,.0},
-		{.0,.0,.0,.0},
-		{.0,.0},
-	};
+	std::vector<VkClearValue> clearValues{4};
 
 private: // Buffers
 	StagedBuffer cameraUniformBuffer {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Camera)};
@@ -256,7 +251,15 @@ private: // Pipelines
 			
 			// Shader
 			lightingShader.SetRenderPass(swapChain, lightingPass.handle, 0);
-			lightingShader.AddColorBlendAttachmentState();
+			lightingShader.AddColorBlendAttachmentState(
+				VK_TRUE,
+				VK_BLEND_FACTOR_ONE,
+				VK_BLEND_FACTOR_ONE,
+				VK_BLEND_OP_ADD,
+				VK_BLEND_FACTOR_ONE,
+				VK_BLEND_FACTOR_ONE,
+				VK_BLEND_OP_MAX
+			);
 			lightingShader.CreatePipeline(renderingDevice);
 		}
 		
@@ -297,7 +300,7 @@ private: // Commands
 		rasterizationPass.End(renderingDevice, commandBuffer);
 
 		// Lighting
-		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, {{.0,.0,.0,.0}}, imageIndex);
+		lightingPass.Begin(renderingDevice, commandBuffer, swapChain, clearValues, imageIndex);
 		for (auto& lightSource : lightSources) {
 			lightingShader.Execute(renderingDevice, commandBuffer, 1, &lightSource);
 		}
@@ -312,8 +315,9 @@ public: // Scene configuration
 	}
 	
 	void LoadScene() override {
-		// Point light
-		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 20}, /*color*/{1,1,1}, /*intensity*/1.0});
+		// Light Sources
+		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 10}, /*color*/{1,1,1}, /*intensity*/0.4});
+		lightSources.push_back({SPOT_LIGHT, /*position*/{0, 0, 20}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
 
 		// Multicolor Triangle
 		sceneObjects.push_back({
@@ -322,7 +326,7 @@ public: // Scene configuration
 			{ // Vertices
 				{/*pos*/{-1, 0,-1}, /*normal*/{0,-1,0}, /*color*/{1,0,0}},
 				{/*pos*/{ 1, 0,-1}, /*normal*/{0,-1,0}, /*color*/{0,1,0}},
-				{/*pos*/{ 0, 0, 1}, /*normal*/{0,-1,0}, /*color*/{0,0,1}},
+				{/*pos*/{ 0, 1, 1}, /*normal*/{0,-1,0}, /*color*/{0,0,1}},
 			},
 			{ // Indices
 				0,1,2,
@@ -380,6 +384,21 @@ public: // Scene configuration
 				12,14,13, 12,15,14, // left
 				16,17,18, 18,19,16, // top
 				20,22,21, 20,23,22, // bottom
+			}
+		});
+
+		// Greenish Plane
+		sceneObjects.push_back({
+			// position
+			{0, 0, -6},
+			{ // Vertices
+				{/*pos*/{-1000,-1000,0}, /*normal*/{0,0,1}, /*color*/{0.4,0.5,0.1}},
+				{/*pos*/{ 1000,-1000,0}, /*normal*/{0,0,1}, /*color*/{0.4,0.5,0.1}},
+				{/*pos*/{ 1000, 1000,0}, /*normal*/{0,0,1}, /*color*/{0.4,0.5,0.1}},
+				{/*pos*/{-1000, 1000,0}, /*normal*/{0,0,1}, /*color*/{0.4,0.5,0.1}},
+			},
+			{ // Indices
+				0,1,2, 2,3,0
 			}
 		});
 

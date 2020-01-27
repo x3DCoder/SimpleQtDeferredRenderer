@@ -68,6 +68,17 @@ void main(void) {
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	vec3 specular = specularStrength * spec * lightSource.color;
 
+	// Spot light
+	if (lightSource.type == 1) {
+		float innerCutOff = cos(radians(lightSource.innerAngle));
+		float outerCutOff = cos(radians(lightSource.outerAngle));
+		float theta = dot(lightDir, normalize(-lightSource.viewDirection));
+		float epsilon = (innerCutOff - outerCutOff);
+		float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
+		diffuse *= intensity;
+		specular *= intensity;
+	}
+
 	color *= diffuse + specular;
 
 	if (length(color) < 0.001) discard;
