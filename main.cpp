@@ -65,22 +65,22 @@ int main(int argc, char *argv[]) {
                 player.velocity = glm::dvec3{0};
                 
                 if (window.isKeyDown(Qt::Key_W)) {
-                    player.velocity = +player.viewForward * player.camSpeed;
+                    player.velocity += +player.viewForward * player.camSpeed;
                 }
                 if (window.isKeyDown(Qt::Key_S)) {
-                    player.velocity = -player.viewForward * player.camSpeed;
+                    player.velocity += -player.viewForward * player.camSpeed;
                 }
                 if (window.isKeyDown(Qt::Key_A)) {
-                    player.velocity = -player.viewRight * player.camSpeed;
+                    player.velocity += -player.viewRight * player.camSpeed;
                 }
                 if (window.isKeyDown(Qt::Key_D)) {
-                    player.velocity = +player.viewRight * player.camSpeed;
+                    player.velocity += +player.viewRight * player.camSpeed;
                 }
                 if (window.isKeyDown(Qt::Key_Space)) {
-                    player.velocity = +player.viewUp * player.camSpeed;
+                    player.velocity += +player.viewUp * player.camSpeed;
                 }
                 if (window.isKeyDown(Qt::Key_Control)) {
-                    player.velocity = -player.viewUp * player.camSpeed;
+                    player.velocity += -player.viewUp * player.camSpeed;
                 }
                 
                 player.worldPosition += player.velocity * deltaTime;

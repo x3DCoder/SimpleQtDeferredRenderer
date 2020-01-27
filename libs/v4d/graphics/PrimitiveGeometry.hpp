@@ -25,7 +25,11 @@ namespace v4d::graphics {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
-        mat4 modelViewMatrix {1};
+        struct MVP {
+            mat4 projectionMatrix {1};
+            mat4 modelViewMatrix {1};
+        } mvp;
+
         StagedBuffer vertexBuffer {VK_BUFFER_USAGE_VERTEX_BUFFER_BIT};
         StagedBuffer indexBuffer {VK_BUFFER_USAGE_INDEX_BUFFER_BIT};
 

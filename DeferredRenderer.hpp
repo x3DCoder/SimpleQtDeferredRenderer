@@ -40,23 +40,17 @@ private: // Images
 
 	std::vector<VkClearValue> clearValues{4};
 
-private: // Buffers
-	StagedBuffer cameraUniformBuffer {VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(Camera)};
-
 private: // Init
-    void Init() override {
-		cameraUniformBuffer.AddSrcDataPtr(&camera, sizeof(Camera));
-	}
+    void Init() override {}
     void ScorePhysicalDeviceSelection(int&, PhysicalDevice*) override {}
 
 	void InitLayouts() override {
 		// Base descriptor set containing Camera and such
 		auto* baseDescriptorSet_0 = descriptorSets.emplace_back(new DescriptorSet(0));
-		baseDescriptorSet_0->AddBinding_uniformBuffer(0, &cameraUniformBuffer.deviceLocalBuffer, VK_SHADER_STAGE_ALL_GRAPHICS);
 
 		// Rasterization
 		rasterizationLayout.AddDescriptorSet(baseDescriptorSet_0);
-        rasterizationLayout.AddPushConstant<glm::mat4>(VK_SHADER_STAGE_VERTEX_BIT);
+        rasterizationLayout.AddPushConstant<PrimitiveGeometry::MVP>(VK_SHADER_STAGE_VERTEX_BIT);
 
 		// Lighting
 		auto* gBuffersDescriptorSet_1 = descriptorSets.emplace_back(new DescriptorSet(1));
@@ -101,14 +95,12 @@ private: // Resources
 	}
 	
 	void AllocateBuffers() override {
-		cameraUniformBuffer.Allocate(renderingDevice);
 		for (auto& obj : sceneObjects) {
 			obj.AllocateBuffers(renderingDevice, transferQueue);
 		}
 	}
 	
 	void FreeBuffers() override {
-		cameraUniformBuffer.Free(renderingDevice);
 		for (auto& obj : sceneObjects) {
 			obj.FreeBuffers(renderingDevice);
 		}
@@ -288,14 +280,11 @@ private: // Commands
 	void RecordGraphicsCommandBuffer(VkCommandBuffer, int) override {}
 	
     void RunDynamicGraphics(VkCommandBuffer commandBuffer, int imageIndex) override {
-		// Update camera uniform buffer with current data
-		cameraUniformBuffer.Update(renderingDevice, commandBuffer);
-
 		// Render primitives
 		rasterizationPass.Begin(renderingDevice, commandBuffer, gBuffer_albedo, clearValues);
 		for (auto& obj : sceneObjects) {
 			primitivesShader.SetData(&obj.vertexBuffer.deviceLocalBuffer, &obj.indexBuffer.deviceLocalBuffer, obj.indices.size());
-			primitivesShader.Execute(renderingDevice, commandBuffer, 1, &obj.modelViewMatrix);
+			primitivesShader.Execute(renderingDevice, commandBuffer, 1, &obj.mvp);
 		}
 		rasterizationPass.End(renderingDevice, commandBuffer);
 
@@ -316,8 +305,10 @@ public: // Scene configuration
 	
 	void LoadScene() override {
 		// Light Sources
-		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 10}, /*color*/{1,1,1}, /*intensity*/0.4});
-		lightSources.push_back({SPOT_LIGHT, /*position*/{0, 0, 20}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
+		lightSources.push_back({POINT_LIGHT, /*position*/{-8, -4, 10}, /*color*/{1,0,0}, /*intensity*/0.3});
+		lightSources.push_back({POINT_LIGHT, /*position*/{ 18, 4,  2}, /*color*/{0,1,0}, /*intensity*/0.3});
+		lightSources.push_back({POINT_LIGHT, /*position*/{-12, 0,  5}, /*color*/{0,0,1}, /*intensity*/0.3});
+		lightSources.push_back({SPOT_LIGHT,  /*position*/{ 0,  0, 18}, /*color*/{1,1,1}, /*intensity*/1.0, /*direction*/{0,0,-1}, /*inner angle*/20, /*outer angle*/25});
 
 		// Multicolor Triangle
 		sceneObjects.push_back({
@@ -426,7 +417,10 @@ public: // Update
 
 		// Update objects matrices
 		for (auto& obj : sceneObjects) {
-			obj.modelViewMatrix = camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), obj.position));
+			obj.mvp = {
+				glm::mat4(camera.projectionMatrix),
+				glm::mat4(camera.viewMatrix * glm::dmat4(glm::translate(glm::mat4(1), obj.position)))
+			};
 		}
 	}
 	

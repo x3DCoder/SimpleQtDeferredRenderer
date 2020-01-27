@@ -6,16 +6,16 @@ namespace v4d::graphics {
     
     struct Camera {
 
-        alignas(4) int width = 0;
-        alignas(4) int height = 0;
-        alignas(32) dvec3 worldPosition {0};
-        alignas(8) double fov = 70;
-        alignas(32) dvec3 lookDirection {0,1,0};
-        alignas(8) double znear = 0.001; // 1 mm
-        alignas(32) dvec3 viewUp = {0,0,1};
-        alignas(8) double zfar = 1.e16; // 1e16 = 1 light-year
-        alignas(128) dmat4 viewMatrix {1};
-        alignas(128) dmat4 projectionMatrix {1};
+        int width = 0;
+        int height = 0;
+        dvec3 worldPosition {0};
+        double fov = 70;
+        dvec3 lookDirection {0,1,0};
+        double znear = 0.001; // 1 mm
+        dvec3 viewUp = {0,0,1};
+        double zfar = 1.e16; // 1e16 = 1 light-year
+        dmat4 viewMatrix {1};
+        dmat4 projectionMatrix {1};
 
         void RefreshViewMatrix() {
             viewMatrix = lookAt(worldPosition, worldPosition + lookDirection, viewUp);

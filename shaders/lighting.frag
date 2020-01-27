@@ -4,19 +4,6 @@ precision highp int;
 precision highp float;
 precision highp sampler2D;
 
-layout(set = 0, binding = 0) uniform Camera {
-	int width;
-	int height;
-	dvec3 worldPosition;
-	double fov;
-	dvec3 lookDirection;
-	double znear;
-	dvec3 viewUp;
-	double zfar;
-	dmat4 viewMatrix;
-	dmat4 projectionMatrix;
-} camera;
-
 layout(std430, push_constant) uniform LightSource {
 	dvec3 worldPosition;
 	vec3 color;
